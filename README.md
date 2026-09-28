@@ -24,22 +24,28 @@ Use `successors()` when only the next set of possible moves is needed. Use `buil
 
 ## Step 2: Minimax Algorithm Implementation
 
-Every score is measured from MAX's perspective:
+Every score is measured from MAX's side:
 - `+1` means the AI wins.
-- `0` means the game is a draw or the depth limit was reached before either player won.
+- `0` means the game is a draw or the search reached its depth limit.
 - `-1` means the opponent wins.
 
-### Minimax Without Alpha-Beta Pruning
-`minimax(state, depth, is_maximizing, maximizing_player)` searches every legal branch down to the depth limit or the end of the game. MAX keeps the highest child score, while MIN keeps the lowest child score.
+### Standard Minimax
+`minimax(state, depth, is_maximizing, maximizing_player)` checks every possible branch. MAX keeps the highest score, and MIN keeps the lowest score for MAX. This finds the optimal move, but checking every branch can be slow.
 
-### Minimax With Alpha-Beta Pruning
-`minimax_alpha_beta(state, depth, alpha, beta, is_maximizing, maximizing_player)` returns the same optimal score while avoiding branches that cannot affect the result. Alpha stores MAX's best guaranteed score, and beta stores MIN's best guaranteed score. A branch is pruned when `beta <= alpha`.
+### Build the Faster AI With Alpha-Beta Pruning
+`minimax_alpha_beta(state, depth, alpha, beta, is_maximizing, maximizing_player)` finds the same optimal move while skipping branches that cannot change the answer.
+
+- **Alpha:** The best score MAX can guarantee so far.
+- **Beta:** The best score MIN can guarantee so far.
+- **Cutoff rule:** When `alpha >= beta`, the rest of that branch cannot improve the final choice, so the search stops checking it.
+
+Skipping that extra work makes the AI faster without changing its final move.
 
 ### Player Roles
-- **MAX (the AI):** `choose_ai_move()` uses alpha-beta pruning and selects the move with the highest guaranteed score.
-- **MIN (the opponent):** `choose_opponent_move()` uses standard minimax without pruning and selects the move with the lowest score for the AI.
+- **MAX (the AI):** `choose_ai_move()` uses the faster alpha-beta search and keeps the highest guaranteed score.
+- **MIN (the opponent):** `choose_opponent_move()` uses regular minimax with no pruning and picks the lowest score for the AI.
 
-Both players are treated as rational. The recursive search alternates between maximizing and minimizing levels until it reaches a terminal board, then backs up those utility values to select an optimal move.
+Both players still play rationally. The search keeps switching between MAX and MIN until it reaches the end of the game, then it brings those scores back up the tree to choose the best move.
 
 ## Example
 ```python
