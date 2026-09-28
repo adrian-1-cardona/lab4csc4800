@@ -1,13 +1,10 @@
 # Lab 4 - Adversarial Search and Games Adrian Cardona
 
 ## Game Selection
-
 This project uses Tic-Tac-Toe because it is a two-player, zero-sum game with a small state space. Each player tries to create a winning line while stopping the other player, which makes the game useful for comparing adversarial search algorithms.
 
-The project only uses the Python 3 standard library.
 
 ## How to Run
-
 ```bash
 # watch alpha beta play against plain minimax
 python3 game.py --algo1 alphabeta --algo2 minimax
