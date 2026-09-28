@@ -125,7 +125,12 @@ class GameState:
         except (TypeError, ValueError) as error:
             raise ValueError("a move must contain a row and column") from error
 
-        if not isinstance(row, int) or not isinstance(column, int):
+        if (
+            not isinstance(row, int)
+            or isinstance(row, bool)
+            or not isinstance(column, int)
+            or isinstance(column, bool)
+        ):
             raise ValueError("the row and column must be integers")
         if not (0 <= row < BOARD_SIZE and 0 <= column < BOARD_SIZE):
             raise ValueError("the row and column must be between 0 and 2")

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import inf
 from typing import Optional
 
-from tictactoe import PLAYER_X, PLAYERS, GameState, Move
+from tictactoe import PLAYER_O, PLAYER_X, PLAYERS, GameState, Move
 
 
 # these scores show if max wins loses or ties
@@ -13,17 +13,26 @@ DRAW_SCORE = 0
 LOSS_SCORE = -1
 
 
-# this counts every board the search evaluates
+# this counts recursive node visits including repeated boards
 @dataclass
 class SearchStats:
+    """Track the amount of search work completed by one agent."""
+
     nodes_evaluated: int = 0
 
     def visit(self) -> None:
         self.nodes_evaluated += 1
 
 
-# this makes sure the search settings are valid
+# this makes sure a player marker is valid
+def _validate_player(player: str, parameter_name: str) -> None:
+    if player not in PLAYERS:
+        raise ValueError(f"{parameter_name} must be X or O")
+
+
+# this makes sure each search level matches the player on the board
 def _validate_search_inputs(
+    state: GameState,
     depth: int,
     is_maximizing: bool,
     maximizing_player: str,
@@ -32,8 +41,24 @@ def _validate_search_inputs(
         raise ValueError("depth must be a nonnegative integer")
     if not isinstance(is_maximizing, bool):
         raise ValueError("is_maximizing must be True or False")
-    if maximizing_player not in PLAYERS:
-        raise ValueError("maximizing_player must be X or O")
+
+    _validate_player(maximizing_player, "maximizing_player")
+    expected_role = state.current_player == maximizing_player
+    if is_maximizing != expected_role:
+        raise ValueError("is_maximizing does not match the current player")
+
+
+# this rejects move requests made for the wrong player or board
+def _validate_agent_turn(
+    state: GameState,
+    agent_player: str,
+    algorithm_name: str,
+) -> None:
+    _validate_player(agent_player, "agent_player")
+    if state.is_terminal:
+        raise ValueError(f"{algorithm_name} cannot move after the game is over")
+    if state.current_player != agent_player:
+        raise ValueError(f"{algorithm_name} can only move on its own turn")
 
 
 # this gives a finished board its score from the max side
@@ -41,8 +66,7 @@ def evaluate_state(
     state: GameState,
     maximizing_player: str = PLAYER_X,
 ) -> int:
-    if maximizing_player not in PLAYERS:
-        raise ValueError("maximizing_player must be X or O")
+    _validate_player(maximizing_player, "maximizing_player")
 
     winner = state.winner
     if winner == maximizing_player:
@@ -62,7 +86,7 @@ def minimax(
 ) -> float:
     """Return the best score after searching every reachable branch."""
 
-    _validate_search_inputs(depth, is_maximizing, maximizing_player)
+    _validate_search_inputs(state, depth, is_maximizing, maximizing_player)
     if stats is not None:
         stats.visit()
 
@@ -112,7 +136,7 @@ def minimax_alpha_beta(
 ) -> float:
     """Return the minimax score while pruning irrelevant branches."""
 
-    _validate_search_inputs(depth, is_maximizing, maximizing_player)
+    _validate_search_inputs(state, depth, is_maximizing, maximizing_player)
     if stats is not None:
         stats.visit()
 
@@ -168,98 +192,7 @@ def minimax_alpha_beta(
     return best_score
 
 
-# this gives max the faster alpha beta search
-def choose_ai_move(
-    state: GameState,
-    ai_player: str = PLAYER_X,
-    stats: Optional[SearchStats] = None,
-) -> Move:
-    """Choose MAX's optimal move with alpha-beta pruning."""
-
-    if ai_player not in PLAYERS:
-        raise ValueError("ai_player must be X or O")
-    if state.is_terminal:
-        raise ValueError("the ai cannot move after the game is over")
-    if state.current_player != ai_player:
-        raise ValueError("the ai can only move on its own turn")
-    if stats is not None:
-        stats.visit()
-
-    # this searches every move left so the ai can reach the end
-    depth = len(state.legal_moves())
-    best_score = -inf
-    best_move: Optional[Move] = None
-
-    # alpha starts low and beta starts high before any moves are checked
-    alpha = -inf
-    beta = inf
-
-    # max checks each move that has not been pruned and keeps the best one
-    for move in state.legal_moves():
-        new_state = state.apply_move(move)
-        score = minimax_alpha_beta(
-            new_state,
-            depth - 1,
-            alpha,
-            beta,
-            False,
-            ai_player,
-            stats,
-        )
-        if score > best_score:
-            best_score = score
-            best_move = move
-
-        # alpha remembers the best score max can guarantee so far
-        alpha = max(alpha, best_score)
-
-    if best_move is None:
-        raise RuntimeError("the ai could not find a legal move")
-    return best_move
-
-
-# this gives min regular minimax so it checks every branch
-def choose_opponent_move(
-    state: GameState,
-    ai_player: str = PLAYER_X,
-    stats: Optional[SearchStats] = None,
-) -> Move:
-    """Choose MIN's optimal move with standard minimax."""
-
-    if ai_player not in PLAYERS:
-        raise ValueError("ai_player must be X or O")
-    if state.is_terminal:
-        raise ValueError("the opponent cannot move after the game is over")
-    if state.current_player == ai_player:
-        raise ValueError("the opponent can only move on its own turn")
-    if stats is not None:
-        stats.visit()
-
-    # this searches every move left so the opponent can reach the end
-    depth = len(state.legal_moves())
-    best_score = inf
-    best_move: Optional[Move] = None
-
-    # min checks every move and keeps the one that hurts max the most
-    for move in state.legal_moves():
-        new_state = state.apply_move(move)
-        score = minimax(
-            new_state,
-            depth - 1,
-            True,
-            ai_player,
-            stats,
-        )
-        if score < best_score:
-            best_score = score
-            best_move = move
-
-    if best_move is None:
-        raise RuntimeError("the opponent could not find a legal move")
-    return best_move
-
-
-# this lets any player use plain minimax as its own agent
+# this gives any player the plain minimax search
 def choose_minimax_move(
     state: GameState,
     agent_player: str = PLAYER_X,
@@ -267,20 +200,15 @@ def choose_minimax_move(
 ) -> Move:
     """Choose an optimal move with standard minimax and no pruning."""
 
-    if agent_player not in PLAYERS:
-        raise ValueError("agent_player must be X or O")
-    if state.is_terminal:
-        raise ValueError("minimax cannot move after the game is over")
-    if state.current_player != agent_player:
-        raise ValueError("minimax can only move on its own turn")
+    _validate_agent_turn(state, agent_player, "minimax")
     if stats is not None:
         stats.visit()
 
-    # this searches every move left and keeps the best one for the agent
     depth = len(state.legal_moves())
     best_score = -inf
     best_move: Optional[Move] = None
 
+    # the agent is max so it keeps the highest move score
     for move in state.legal_moves():
         new_state = state.apply_move(move)
         score = minimax(
@@ -297,3 +225,70 @@ def choose_minimax_move(
     if best_move is None:
         raise RuntimeError("minimax could not find a legal move")
     return best_move
+
+
+# this gives any player the faster alpha beta search
+def choose_alpha_beta_move(
+    state: GameState,
+    agent_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
+) -> Move:
+    """Choose an optimal move with alpha-beta pruning."""
+
+    _validate_agent_turn(state, agent_player, "alpha-beta")
+    if stats is not None:
+        stats.visit()
+
+    depth = len(state.legal_moves())
+    best_score = -inf
+    best_move: Optional[Move] = None
+    alpha = -inf
+    beta = inf
+
+    # max checks each move that has not been pruned and keeps the best one
+    for move in state.legal_moves():
+        new_state = state.apply_move(move)
+        score = minimax_alpha_beta(
+            new_state,
+            depth - 1,
+            alpha,
+            beta,
+            False,
+            agent_player,
+            stats,
+        )
+        if score > best_score:
+            best_score = score
+            best_move = move
+
+        # reuse alpha across root moves to prune more work
+        alpha = max(alpha, best_score)
+
+    if best_move is None:
+        raise RuntimeError("alpha-beta could not find a legal move")
+    return best_move
+
+
+# this keeps the original assignment name working
+def choose_ai_move(
+    state: GameState,
+    ai_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
+) -> Move:
+    """Choose a move with alpha-beta pruning."""
+
+    return choose_alpha_beta_move(state, ai_player, stats)
+
+
+# this keeps the original minimizing opponent option working
+def choose_opponent_move(
+    state: GameState,
+    ai_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
+) -> Move:
+    """Choose the opposing player's move with plain minimax."""
+
+    _validate_player(ai_player, "ai_player")
+    opponent_player = PLAYER_O if ai_player == PLAYER_X else PLAYER_X
+    _validate_agent_turn(state, opponent_player, "the opponent")
+    return choose_minimax_move(state, opponent_player, stats)

@@ -5,29 +5,57 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, field
 from time import perf_counter
-from typing import Optional, Sequence, Tuple
+from typing import NamedTuple, Optional, Sequence, Tuple
 
 from iddfs import choose_iddfs_move
-from minimax import SearchStats, choose_ai_move, choose_minimax_move
-from tictactoe import GameState, Move
+from minimax import SearchStats, choose_alpha_beta_move, choose_minimax_move
+from tictactoe import PLAYER_O, PLAYER_X, GameState, Move
 
 
 ALGORITHMS = ("minimax", "alphabeta", "iddfs", "human")
+ALGORITHM_LABELS = {
+    "minimax": "Plain Minimax",
+    "alphabeta": "Alpha-Beta",
+    "iddfs": "IDDFS",
+    "human": "Human",
+}
+
+DRAW = 0
+PLAYER_ONE_WIN = 1
+PLAYER_TWO_WIN = 2
 
 
-# these matchups compare every ai algorithm from the lab
+# every pair plays once as x and once as o for a fair comparison
 COMPARISON_MATCHUPS = (
     ("minimax", "alphabeta"),
     ("alphabeta", "minimax"),
+    ("minimax", "iddfs"),
     ("iddfs", "minimax"),
+    ("alphabeta", "iddfs"),
     ("iddfs", "alphabeta"),
 )
 
-GameMetrics = Tuple[int, float, int, float, int]
-ComparisonResult = Tuple[str, str, int, float, int, float, int]
+
+# named fields keep the original tuple return easy to understand
+class GameMetrics(NamedTuple):
+    winner: int
+    player1_seconds: float
+    player1_nodes: int
+    player2_seconds: float
+    player2_nodes: int
 
 
-# this stores one players time and node count
+class ComparisonResult(NamedTuple):
+    player1_algorithm: str
+    player2_algorithm: str
+    winner: int
+    player1_seconds: float
+    player1_nodes: int
+    player2_seconds: float
+    player2_nodes: int
+
+
+# this stores one player's time and node count
 @dataclass
 class PlayerMetrics:
     seconds: float = 0.0
@@ -67,19 +95,22 @@ def _choose_move(
     if algorithm == "minimax":
         return choose_minimax_move(state, player, stats)
     if algorithm == "alphabeta":
-        return choose_ai_move(state, player, stats)
+        return choose_alpha_beta_move(state, player, stats)
     if algorithm == "iddfs":
         return choose_iddfs_move(state, player, stats=stats)
     raise ValueError(f"unknown algorithm: {algorithm}")
 
 
 # this turns the winner number into an easy result message
-def _outcome_name(winner: int) -> str:
-    if winner == 1:
-        return "P1 Win"
-    if winner == 2:
-        return "P2 Win"
-    return "Draw"
+def outcome_name(winner: int) -> str:
+    outcomes = {
+        DRAW: "Draw",
+        PLAYER_ONE_WIN: "P1 Win",
+        PLAYER_TWO_WIN: "P2 Win",
+    }
+    if isinstance(winner, bool) or winner not in outcomes:
+        raise ValueError("winner must be 0, 1, or 2")
+    return outcomes[winner]
 
 
 # this runs one complete game and returns the five lab metrics
@@ -100,13 +131,13 @@ def run_game(
     player2 = PlayerMetrics()
 
     if verbose:
-        print(f"player 1 is X using {player1_algo}")
-        print(f"player 2 is O using {player2_algo}")
+        print(f"player 1 is {PLAYER_X} using {player1_algo}")
+        print(f"player 2 is {PLAYER_O} using {player2_algo}")
         print()
         print(state)
 
     while not state.is_terminal:
-        is_player1 = state.current_player == "X"
+        is_player1 = state.current_player == PLAYER_X
         algorithm = player1_algo if is_player1 else player2_algo
         metrics = player1 if is_player1 else player2
         player_number = 1 if is_player1 else 2
@@ -130,16 +161,16 @@ def run_game(
             print(f"player {player_number} {algorithm} chose {move}")
             print(state)
 
-    if state.winner == "X":
-        winner = 1
-    elif state.winner == "O":
-        winner = 2
+    if state.winner == PLAYER_X:
+        winner = PLAYER_ONE_WIN
+    elif state.winner == PLAYER_O:
+        winner = PLAYER_TWO_WIN
     else:
-        winner = 0
+        winner = DRAW
 
     if verbose:
         print()
-        print(f"outcome: {_outcome_name(winner)}")
+        print(f"outcome: {outcome_name(winner)}")
         print(
             f"player 1 time: {player1.seconds:.4f}s  "
             f"nodes: {player1.search.nodes_evaluated}"
@@ -149,7 +180,7 @@ def run_game(
             f"nodes: {player2.search.nodes_evaluated}"
         )
 
-    return (
+    return GameMetrics(
         winner,
         player1.seconds,
         player1.search.nodes_evaluated,
@@ -158,8 +189,10 @@ def run_game(
     )
 
 
-# this runs every ai matchup and prints one comparison table
+# this runs the same comparison suite used by the report
 def run_comparison_suite() -> Tuple[ComparisonResult, ...]:
+    """Run every role-balanced AI matchup and print its metrics."""
+
     print("=== Running Adversarial Search Evaluation Suite ===")
     print(
         f"{'Matchup':<27} | {'Outcome':<10} | {'P1 Nodes':<10} | "
@@ -169,25 +202,22 @@ def run_comparison_suite() -> Tuple[ComparisonResult, ...]:
 
     results = []
     for player1_algo, player2_algo in COMPARISON_MATCHUPS:
-        winner, p1_time, p1_nodes, p2_time, p2_nodes = run_game(
-            player1_algo,
-            player2_algo,
-        )
+        game = run_game(player1_algo, player2_algo)
         matchup = f"{player1_algo} vs {player2_algo}"
-        outcome = _outcome_name(winner)
         print(
-            f"{matchup:<27} | {outcome:<10} | {p1_nodes:<10} | "
-            f"{p2_nodes:<10} | {p1_time:<12.4f} | {p2_time:<12.4f}"
+            f"{matchup:<27} | {outcome_name(game.winner):<10} | "
+            f"{game.player1_nodes:<10} | {game.player2_nodes:<10} | "
+            f"{game.player1_seconds:<12.4f} | {game.player2_seconds:<12.4f}"
         )
         results.append(
-            (
+            ComparisonResult(
                 player1_algo,
                 player2_algo,
-                winner,
-                p1_time,
-                p1_nodes,
-                p2_time,
-                p2_nodes,
+                game.winner,
+                game.player1_seconds,
+                game.player1_nodes,
+                game.player2_seconds,
+                game.player2_nodes,
             )
         )
 

@@ -3,7 +3,7 @@
 from math import inf
 from typing import Optional
 
-from minimax import SearchStats, evaluate_state
+from minimax import DRAW_SCORE, SearchStats, evaluate_state
 from tictactoe import PLAYER_X, PLAYERS, GameState, Move
 
 
@@ -31,19 +31,25 @@ def dls(
     maximizing_player: str = PLAYER_X,
     stats: Optional[SearchStats] = None,
 ) -> float:
-    """Return the best score found within one depth-limited search."""
+    """Return the best terminal score found within one depth limit."""
 
     _validate_search_inputs(max_depth, is_maximizing, maximizing_player)
+    expected_role = state.current_player == maximizing_player
+    if is_maximizing is None:
+        is_maximizing = expected_role
+    elif is_maximizing != expected_role:
+        raise ValueError("is_maximizing does not match the current player")
+
     if stats is not None:
         stats.visit()
 
-    # this stops at the depth limit or when the game is over
-    if max_depth == 0 or state.is_terminal:
+    # finished boards use their win draw or loss score
+    if state.is_terminal:
         return evaluate_state(state, maximizing_player)
 
-    # this figures out whose turn the first search level belongs to
-    if is_maximizing is None:
-        is_maximizing = state.current_player == maximizing_player
+    # unfinished cutoff boards are neutral because there is no heuristic
+    if max_depth == 0:
+        return DRAW_SCORE
 
     # max checks every move and keeps the highest score
     if is_maximizing:
@@ -114,7 +120,7 @@ def iddfs(
     max_depth: Optional[int] = None,
     stats: Optional[SearchStats] = None,
 ) -> Move:
-    """Choose a move after repeating DLS through the deepest allowed level."""
+    """Choose the best move from the deepest completed DLS pass."""
 
     if agent_player not in PLAYERS:
         raise ValueError("agent_player must be X or O")
@@ -135,7 +141,7 @@ def iddfs(
 
     best_move: Optional[Move] = None
 
-    # each pass keeps its best move before the next deeper pass starts
+    # repeated boards count again because each pass does the work again
     for depth_limit in range(1, search_limit + 1):
         best_move = _best_move_at_depth(
             state,
