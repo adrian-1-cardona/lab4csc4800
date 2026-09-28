@@ -47,6 +47,31 @@ Skipping that extra work makes the AI faster without changing its final move.
 
 Both players still play rationally. The search keeps switching between MAX and MIN until it reaches the end of the game, then it brings those scores back up the tree to choose the best move.
 
+## Step 3: Iterative Deepening Depth-First Search
+
+Regular IDDFS looks for a goal by running depth-limited search again and again. In Tic-Tac-Toe, Agent 3 uses the same idea with adversarial MAX and MIN levels:
+
+1. Search to depth 1.
+2. Start over and search to depth 2.
+3. Keep increasing the limit until it reaches the requested depth or every remaining move.
+4. Keep the best move from the deepest completed search.
+
+`dls(state, max_depth)` runs one depth-limited adversarial search. `iddfs(state)` repeats DLS through every remaining level. `choose_iddfs_move()` exposes that search as the third AI agent.
+
+A Tic-Tac-Toe game has at most nine moves. Once IDDFS reaches the full remaining depth, it sees every possible ending and selects the same optimal move as the alpha-beta agent.
+
+### Three Agent Options
+
+1. **Plain Minimax Agent:** Searches every branch with no pruning.
+2. **Alpha-Beta Agent:** Skips branches that cannot change the final move.
+3. **IDDFS Agent:** Repeats depth-limited minimax at deeper limits.
+
+### Matchups for Later Comparisons
+
+- **Matchup 1:** Alpha-Beta Agent vs. Plain Minimax Agent
+- **Matchup 2:** IDDFS Agent vs. Plain Minimax Agent
+- **Matchup 3:** IDDFS Agent vs. Alpha-Beta Agent
+
 ## Example
 ```python
 from minimax import choose_ai_move, choose_opponent_move
