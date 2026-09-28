@@ -16,20 +16,13 @@ python3 game.py --algo1 human --algo2 alphabeta
 python3 game.py --algo1 iddfs --algo2 alphabeta
 ```
 
-Player 1 uses X and Player 2 uses O. Human moves use zero-based `row column` values, so `1 1` is the center square.
-
-Each player can use `minimax`, `alphabeta`, `iddfs`, or `human`. Run `python3 game.py --help` to see every option.
-
 ### Automated Performance Evaluation
-
 ```bash
 python3 game.py --compare
 ```
-
-The comparison runs every pair of AI agents twice so each one plays as X and O. The table records the outcome, decision time, and recursive node visits for both players.
+So this comparison runs every pair of AI agents twice so each one plays as X and O. The table records the outcome, decision time, and recursive node visits for both players.
 
 Run the full report generator with:
-
 ```bash
 python3 evaluation.py
 ```
