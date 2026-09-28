@@ -3,7 +3,7 @@
 from math import inf
 from typing import Optional
 
-from minimax import evaluate_state
+from minimax import SearchStats, evaluate_state
 from tictactoe import PLAYER_X, PLAYERS, GameState, Move
 
 
@@ -29,10 +29,13 @@ def dls(
     max_depth: int,
     is_maximizing: Optional[bool] = None,
     maximizing_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
 ) -> float:
     """Return the best score found within one depth-limited search."""
 
     _validate_search_inputs(max_depth, is_maximizing, maximizing_player)
+    if stats is not None:
+        stats.visit()
 
     # this stops at the depth limit or when the game is over
     if max_depth == 0 or state.is_terminal:
@@ -52,6 +55,7 @@ def dls(
                 max_depth - 1,
                 False,
                 maximizing_player,
+                stats,
             )
             best_score = max(score, best_score)
         return best_score
@@ -65,6 +69,7 @@ def dls(
             max_depth - 1,
             True,
             maximizing_player,
+            stats,
         )
         best_score = min(score, best_score)
     return best_score
@@ -75,7 +80,11 @@ def _best_move_at_depth(
     state: GameState,
     depth_limit: int,
     agent_player: str,
+    stats: Optional[SearchStats] = None,
 ) -> Move:
+    if stats is not None:
+        stats.visit()
+
     best_score = -inf
     best_move: Optional[Move] = None
 
@@ -87,6 +96,7 @@ def _best_move_at_depth(
             depth_limit - 1,
             False,
             agent_player,
+            stats,
         )
         if score > best_score:
             best_score = score
@@ -102,6 +112,7 @@ def iddfs(
     state: GameState,
     agent_player: str = PLAYER_X,
     max_depth: Optional[int] = None,
+    stats: Optional[SearchStats] = None,
 ) -> Move:
     """Choose a move after repeating DLS through the deepest allowed level."""
 
@@ -126,7 +137,12 @@ def iddfs(
 
     # each pass keeps its best move before the next deeper pass starts
     for depth_limit in range(1, search_limit + 1):
-        best_move = _best_move_at_depth(state, depth_limit, agent_player)
+        best_move = _best_move_at_depth(
+            state,
+            depth_limit,
+            agent_player,
+            stats,
+        )
 
     if best_move is None:
         raise RuntimeError("iddfs did not complete a search")
@@ -138,7 +154,8 @@ def choose_iddfs_move(
     state: GameState,
     agent_player: str = PLAYER_X,
     max_depth: Optional[int] = None,
+    stats: Optional[SearchStats] = None,
 ) -> Move:
     """Choose the third agent's move with iterative deepening."""
 
-    return iddfs(state, agent_player, max_depth)
+    return iddfs(state, agent_player, max_depth, stats)

@@ -1,5 +1,6 @@
 """Minimax search strategies for the Tic-Tac-Toe players."""
 
+from dataclasses import dataclass
 from math import inf
 from typing import Optional
 
@@ -10,6 +11,15 @@ from tictactoe import PLAYER_X, PLAYERS, GameState, Move
 WIN_SCORE = 1
 DRAW_SCORE = 0
 LOSS_SCORE = -1
+
+
+# this counts every board the search evaluates
+@dataclass
+class SearchStats:
+    nodes_evaluated: int = 0
+
+    def visit(self) -> None:
+        self.nodes_evaluated += 1
 
 
 # this makes sure the search settings are valid
@@ -48,10 +58,13 @@ def minimax(
     depth: int,
     is_maximizing: bool,
     maximizing_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
 ) -> float:
     """Return the best score after searching every reachable branch."""
 
     _validate_search_inputs(depth, is_maximizing, maximizing_player)
+    if stats is not None:
+        stats.visit()
 
     # this stops at the depth limit or when the game is over
     if depth == 0 or state.is_terminal:
@@ -62,7 +75,13 @@ def minimax(
         best_score = -inf
         for move in state.legal_moves():
             new_state = state.apply_move(move)
-            score = minimax(new_state, depth - 1, False, maximizing_player)
+            score = minimax(
+                new_state,
+                depth - 1,
+                False,
+                maximizing_player,
+                stats,
+            )
             best_score = max(score, best_score)
         return best_score
 
@@ -70,7 +89,13 @@ def minimax(
     best_score = inf
     for move in state.legal_moves():
         new_state = state.apply_move(move)
-        score = minimax(new_state, depth - 1, True, maximizing_player)
+        score = minimax(
+            new_state,
+            depth - 1,
+            True,
+            maximizing_player,
+            stats,
+        )
         best_score = min(score, best_score)
     return best_score
 
@@ -83,10 +108,13 @@ def minimax_alpha_beta(
     beta: float,
     is_maximizing: bool,
     maximizing_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
 ) -> float:
     """Return the minimax score while pruning irrelevant branches."""
 
     _validate_search_inputs(depth, is_maximizing, maximizing_player)
+    if stats is not None:
+        stats.visit()
 
     # this stops at the depth limit or when the game is over
     if depth == 0 or state.is_terminal:
@@ -104,6 +132,7 @@ def minimax_alpha_beta(
                 beta,
                 False,
                 maximizing_player,
+                stats,
             )
             best_score = max(score, best_score)
 
@@ -126,6 +155,7 @@ def minimax_alpha_beta(
             beta,
             True,
             maximizing_player,
+            stats,
         )
         best_score = min(score, best_score)
 
@@ -142,6 +172,7 @@ def minimax_alpha_beta(
 def choose_ai_move(
     state: GameState,
     ai_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
 ) -> Move:
     """Choose MAX's optimal move with alpha-beta pruning."""
 
@@ -151,6 +182,8 @@ def choose_ai_move(
         raise ValueError("the ai cannot move after the game is over")
     if state.current_player != ai_player:
         raise ValueError("the ai can only move on its own turn")
+    if stats is not None:
+        stats.visit()
 
     # this searches every move left so the ai can reach the end
     depth = len(state.legal_moves())
@@ -171,6 +204,7 @@ def choose_ai_move(
             beta,
             False,
             ai_player,
+            stats,
         )
         if score > best_score:
             best_score = score
@@ -188,6 +222,7 @@ def choose_ai_move(
 def choose_opponent_move(
     state: GameState,
     ai_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
 ) -> Move:
     """Choose MIN's optimal move with standard minimax."""
 
@@ -197,6 +232,8 @@ def choose_opponent_move(
         raise ValueError("the opponent cannot move after the game is over")
     if state.current_player == ai_player:
         raise ValueError("the opponent can only move on its own turn")
+    if stats is not None:
+        stats.visit()
 
     # this searches every move left so the opponent can reach the end
     depth = len(state.legal_moves())
@@ -206,7 +243,13 @@ def choose_opponent_move(
     # min checks every move and keeps the one that hurts max the most
     for move in state.legal_moves():
         new_state = state.apply_move(move)
-        score = minimax(new_state, depth - 1, True, ai_player)
+        score = minimax(
+            new_state,
+            depth - 1,
+            True,
+            ai_player,
+            stats,
+        )
         if score < best_score:
             best_score = score
             best_move = move
@@ -220,6 +263,7 @@ def choose_opponent_move(
 def choose_minimax_move(
     state: GameState,
     agent_player: str = PLAYER_X,
+    stats: Optional[SearchStats] = None,
 ) -> Move:
     """Choose an optimal move with standard minimax and no pruning."""
 
@@ -229,6 +273,8 @@ def choose_minimax_move(
         raise ValueError("minimax cannot move after the game is over")
     if state.current_player != agent_player:
         raise ValueError("minimax can only move on its own turn")
+    if stats is not None:
+        stats.visit()
 
     # this searches every move left and keeps the best one for the agent
     depth = len(state.legal_moves())
@@ -237,7 +283,13 @@ def choose_minimax_move(
 
     for move in state.legal_moves():
         new_state = state.apply_move(move)
-        score = minimax(new_state, depth - 1, False, agent_player)
+        score = minimax(
+            new_state,
+            depth - 1,
+            False,
+            agent_player,
+            stats,
+        )
         if score > best_score:
             best_score = score
             best_move = move

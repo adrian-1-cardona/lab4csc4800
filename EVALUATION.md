@@ -46,3 +46,26 @@ These values came from one run on the local computer. Timing can change between 
 - Every agent earned a quality score of `0.500`. A win scores `1`, a draw scores `0.5`, and a loss scores `0`.
 
 Alpha-Beta gave the best performance in this run because it produced the same optimal decisions as Plain Minimax and IDDFS in less time.
+
+## Command-Line Node and Time Comparison
+
+The command-line agents were also measured from the same empty board with node counting enabled.
+
+| Agent | Move | Nodes Evaluated | Time (s) |
+| --- | --- | ---: | ---: |
+| Plain Minimax | `(0, 0)` | 549946 | 3.3356 |
+| Alpha-Beta | `(0, 0)` | 18297 | 0.1176 |
+| IDDFS | `(0, 0)` | 1290114 | 7.2915 |
+
+Alpha-Beta evaluated 531649 fewer nodes than Plain Minimax, which is a 96.67% reduction, and still selected the same move. IDDFS evaluated the most nodes because every deeper pass repeated the earlier depth-limited work.
+
+The isolated `python3 game.py --compare` run produced:
+
+| Matchup | Outcome | P1 Nodes | P2 Nodes | P1 Time (s) | P2 Time (s) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| minimax vs alphabeta | Draw | 557492 | 2435 | 3.4342 | 0.0161 |
+| alphabeta vs minimax | Draw | 19217 | 60692 | 0.1245 | 0.3806 |
+| iddfs vs minimax | Draw | 1307988 | 60692 | 7.3885 | 0.3717 |
+| iddfs vs alphabeta | Draw | 1307988 | 2435 | 7.3565 | 0.0160 |
+
+All four games ended in draws, so pruning and iterative deepening changed computational cost without reducing decision quality.

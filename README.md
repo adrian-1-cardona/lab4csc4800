@@ -74,24 +74,64 @@ A Tic-Tac-Toe game has at most nine moves. Once IDDFS reaches the full remaining
 
 ## Step 4: Evaluation and Comparison
 
-Run the complete evaluation with:
+The project now has two evaluation commands:
+
+- `python3 evaluation.py` measures all three agents on the same opening, middle, and late boards and prints the report format used in `EVALUATION.md`.
+- `python3 game.py --compare` plays automated matchups and prints game outcomes, execution time, and nodes evaluated for each player.
+
+A node is counted every time an algorithm evaluates a game state. IDDFS counts states again when it revisits them at a deeper limit because those repeated searches are part of its computational work.
+
+Decision quality is measured with the final game outcome. A win scores `1`, a draw scores `0.5`, and a loss scores `0`. Timing values depend on the computer running the evaluation, while the moves and outcomes stay deterministic.
+
+## Running the Game and Evaluation
+
+### Interactive Gameplay
+
+Player 1 uses X and Player 2 uses O. Human moves use zero-based `row column` coordinates such as `1 2`.
 
 ```bash
-python3 evaluation.py
+# watch alpha beta play against plain minimax
+python3 game.py --algo1 alphabeta --algo2 minimax
+
+# play as a human against alpha beta
+python3 game.py --algo1 human --algo2 alphabeta
+
+# watch iddfs play against alpha beta
+python3 game.py --algo1 iddfs --algo2 alphabeta
 ```
 
-The evaluation measures each agent on the same opening, middle, and late boards with `time.perf_counter()`. It also runs the three matchups from Step 3 and records every move time.
+Each player can use `minimax`, `alphabeta`, `iddfs`, or `human`. Run `python3 game.py --help` to see every option.
 
-The report includes:
+### Automated Performance Evaluation
 
-- Decision time for each agent on the same board positions.
-- Total and average decision time during games.
-- Wins, draws, and losses for decision quality.
-- A quality score where a win is `1`, a draw is `0.5`, and a loss is `0`.
-- A direct opening-move speed comparison between Plain Minimax and Alpha-Beta.
-- IDDFS timing and outcomes as the third comparison.
+```bash
+python3 game.py --compare
+```
 
-Timing values depend on the computer running the evaluation. The agent decisions and game outcomes stay deterministic. A measured run is saved in `EVALUATION.md`.
+The comparison table shows:
+
+- The algorithms in each matchup.
+- The winner or draw outcome.
+- Nodes evaluated by each player.
+- Total decision time for each player.
+
+## How This Maps to Chapter 5
+
+### Decision Quality and Optimal Play
+
+Minimax chooses the best move while assuming the opponent also chooses its best move. Tic-Tac-Toe is a two-player zero-sum game with perfect information, so two optimal agents always force a draw.
+
+### Minimax and Alpha-Beta Efficiency
+
+Plain Minimax explores the full game tree and has worst-case time complexity `O(b^m)`, where `b` is the branching factor and `m` is the maximum depth.
+
+Alpha-Beta keeps alpha as MAX's best guaranteed score and beta as MIN's best guaranteed score. It stops a branch when `alpha >= beta`. This pruning returns the same optimal move as Minimax while evaluating fewer nodes. With ideal move ordering, its best-case search can approach `O(b^(m/2))`.
+
+### Iterative Deepening
+
+IDDFS repeats depth-limited adversarial search at depths `1, 2, ...` until it reaches the full remaining game depth. Earlier passes can provide a best move when a search has a time limit. This implementation finishes every depth, so its final move matches the other optimal agents while its node count includes the repeated work.
+
+The measured comparison from this project is saved in `EVALUATION.md`.
 
 ## Example
 ```python
