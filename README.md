@@ -26,19 +26,51 @@ Invalid boards and illegal moves raise `ValueError` with a clear explanation.
 
 Use `successors()` when only the next set of possible moves is needed. Use `build_game_tree()` when the complete recursive tree is needed.
 
+## Step 2: Minimax Algorithm Implementation
+
+Every score is measured from MAX's perspective:
+
+- `+1` means the AI wins.
+- `0` means the game is a draw or the depth limit was reached before either player won.
+- `-1` means the opponent wins.
+
+### Minimax Without Alpha-Beta Pruning
+
+`minimax(state, depth, is_maximizing, maximizing_player)` searches every legal branch down to the depth limit or the end of the game. MAX keeps the highest child score, while MIN keeps the lowest child score.
+
+### Minimax With Alpha-Beta Pruning
+
+`minimax_alpha_beta(state, depth, alpha, beta, is_maximizing, maximizing_player)` returns the same optimal score while avoiding branches that cannot affect the result. Alpha stores MAX's best guaranteed score, and beta stores MIN's best guaranteed score. A branch is pruned when `beta <= alpha`.
+
+### Player Roles
+
+- **MAX (the AI):** `choose_ai_move()` uses alpha-beta pruning and selects the move with the highest guaranteed score.
+- **MIN (the opponent):** `choose_opponent_move()` uses standard minimax without pruning and selects the move with the lowest score for the AI.
+
+Both players are treated as rational. The recursive search alternates between maximizing and minimizing levels until it reaches a terminal board, then backs up those utility values to select an optimal move.
+
 ## Example
 
 ```python
-from tictactoe import GameState, build_game_tree
+from minimax import choose_ai_move, choose_opponent_move
+from tictactoe import PLAYER_X, GameState
 
 state = GameState.new_game()
-state = state.apply_move((1, 1))
+ai_player = PLAYER_X
 
-print(state)
-print(state.legal_moves())
+while not state.is_terminal:
+    if state.current_player == ai_player:
+        move = choose_ai_move(state, ai_player)
+    else:
+        move = choose_opponent_move(state, ai_player)
 
-tree = build_game_tree(state)
-print(len(tree.children))
+    state = state.apply_move(move)
+    print(state)
+    print()
+
+print("winner:", state.winner or "draw")
 ```
+
+The AI searches with alpha-beta pruning, while its opponent searches the complete minimax tree without pruning. Since both players choose optimal moves, the example ends in a draw.
 
 The implementation only uses the Python standard library and can be imported directly with Python 3.
