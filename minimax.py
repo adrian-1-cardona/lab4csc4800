@@ -214,3 +214,34 @@ def choose_opponent_move(
     if best_move is None:
         raise RuntimeError("the opponent could not find a legal move")
     return best_move
+
+
+# this lets any player use plain minimax as its own agent
+def choose_minimax_move(
+    state: GameState,
+    agent_player: str = PLAYER_X,
+) -> Move:
+    """Choose an optimal move with standard minimax and no pruning."""
+
+    if agent_player not in PLAYERS:
+        raise ValueError("agent_player must be X or O")
+    if state.is_terminal:
+        raise ValueError("minimax cannot move after the game is over")
+    if state.current_player != agent_player:
+        raise ValueError("minimax can only move on its own turn")
+
+    # this searches every move left and keeps the best one for the agent
+    depth = len(state.legal_moves())
+    best_score = -inf
+    best_move: Optional[Move] = None
+
+    for move in state.legal_moves():
+        new_state = state.apply_move(move)
+        score = minimax(new_state, depth - 1, False, agent_player)
+        if score > best_score:
+            best_score = score
+            best_move = move
+
+    if best_move is None:
+        raise RuntimeError("minimax could not find a legal move")
+    return best_move

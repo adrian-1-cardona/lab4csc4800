@@ -72,6 +72,27 @@ A Tic-Tac-Toe game has at most nine moves. Once IDDFS reaches the full remaining
 - **Matchup 2:** IDDFS Agent vs. Plain Minimax Agent
 - **Matchup 3:** IDDFS Agent vs. Alpha-Beta Agent
 
+## Step 4: Evaluation and Comparison
+
+Run the complete evaluation with:
+
+```bash
+python3 evaluation.py
+```
+
+The evaluation measures each agent on the same opening, middle, and late boards with `time.perf_counter()`. It also runs the three matchups from Step 3 and records every move time.
+
+The report includes:
+
+- Decision time for each agent on the same board positions.
+- Total and average decision time during games.
+- Wins, draws, and losses for decision quality.
+- A quality score where a win is `1`, a draw is `0.5`, and a loss is `0`.
+- A direct opening-move speed comparison between Plain Minimax and Alpha-Beta.
+- IDDFS timing and outcomes as the third comparison.
+
+Timing values depend on the computer running the evaluation. The agent decisions and game outcomes stay deterministic. A measured run is saved in `EVALUATION.md`.
+
 ## Example
 ```python
 from minimax import choose_ai_move, choose_opponent_move
