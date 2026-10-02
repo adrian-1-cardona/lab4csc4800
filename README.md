@@ -6,5 +6,4 @@ python3 game.py --algo1 alphabeta --algo2 minimax
 python3 game.py --algo1 iddfs --algo2 alphabeta
 python3 game.py --algo1 human --algo2 alphabeta
 python3 game.py --compare
-python3 evaluation.py
 ```
